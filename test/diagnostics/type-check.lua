@@ -185,6 +185,28 @@ t.x = {}
 ]]
 
 TEST [[
+---@diagnostic disable: missing-fields
+---@class Foo
+---@field a number
+---@field b number
+---@field c number
+
+---@class Bar
+---@field ba number
+---@field bb number
+---@field bc number
+
+---@type Foo|Bar
+local b = {
+    a = 1,
+    b = 2,
+    c = 3,
+}
+---@type Foo|Bar
+local c = <!{ a = 1, b = 2 }!>
+]]
+
+TEST [[
 ---@class A
 ---@field x integer
 

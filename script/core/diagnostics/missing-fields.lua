@@ -3,6 +3,7 @@ local files = require 'files'
 local guide = require 'parser.guide'
 local await = require 'await'
 local lang  = require 'language'
+local utility  = require 'utility'
 
 ---@async
 return function (uri, callback)
@@ -29,15 +30,20 @@ return function (uri, callback)
                         break
                     end
                 end
+                local typeName = vm.getKeyName(def)
+                local keys = {}
                 for _, field in ipairs(def.fields) do
                     if  not field.optional
                     and not vm.compileNode(field):isNullable() then
                         local key = vm.getKeyName(field)
-                        if key and not requiresKeys[key] then
-                            requiresKeys[key] = true
-                            requiresKeys[#requiresKeys+1] = key
+                        if key then
+                            keys[#keys+1] = key
                         end
                     end
+                end
+                if typeName then
+                    requiresKeys[typeName] = keys
+                    requiresKeys[#requiresKeys + 1] = typeName
                 end
             end
             ::continue::
@@ -55,21 +61,35 @@ return function (uri, callback)
             end
         end
 
-        local missedKeys = {}
-        for _, key in ipairs(requiresKeys) do
-            if not myKeys[key] then
-                missedKeys[#missedKeys+1] = ('`%s`'):format(key)
+        local missingResults = {}
+        for typeName, typeRequiresKeys in pairs(requiresKeys) do
+            if type(typeName) == "string" then
+                local missedKeys = {}
+                for _, key in ipairs(typeRequiresKeys) do
+                    if not myKeys[key] then
+                        missedKeys[#missedKeys+1] = ('`%s`'):format(key)
+                    end
+                end
+                missingResults[typeName] = missedKeys
             end
         end
+        print(utility.dump(missingResults))
 
-        if #missedKeys == 0 then
-            return
+        local message = ''
+        for typeName, missingKeys in pairs(missingResults) do
+            if #missingKeys == 0 then
+                return
+            end
+            if #message > 0 then
+                message = message .. '; '
+            end
+            message = message .. ('`%s`: '):format(typeName) .. table.concat(missingKeys, ', ')
         end
 
         callback {
             start   = src.start,
             finish  = src.finish,
-            message = lang.script('DIAG_MISSING_FIELDS', table.concat(missedKeys, ', ')),
+            message = lang.script('DIAG_MISSING_FIELDS', message),
         }
     end)
 end

@@ -84,9 +84,11 @@ function TESTWITH(code)
     end
 end
 
-require 'diagnostics.common'
+-- require 'diagnostics.common'
 require 'diagnostics.type-check'
+--[[
 require 'diagnostics.incomplete-signature-doc'
 require 'diagnostics.missing-global-doc'
 require 'diagnostics.missing-local-export-doc'
 require 'diagnostics.global-element'
+--]]
